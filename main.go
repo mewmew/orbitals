@@ -121,9 +121,8 @@ func genModels() error {
 }
 
 // Probability threshold.
-const threshold = 1.0e-6
-
-//const threshold = 1.0e-11
+//const threshold = 1.0e-6
+const threshold = 1.0e-11
 
 // genModel generates a 3D-model visualizing the probability distribution of the
 // specified (n, l, m)-orbital.
