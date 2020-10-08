@@ -1,7 +1,6 @@
 // References.
 //
 //    [1]: https://chemistrygod.com/atomic-orbital
-//    [2]: https://chemistrygod.com/atomic-orbital
 
 package main
 
@@ -39,6 +38,16 @@ func main() {
 	{
 		const (
 			n = 2 // principal quantum number
+			l = 0 // azimuthal quantum number
+			m = 0 // magnetic quantum number
+		)
+		line := getLine(n, l, m)
+		lines = append(lines, line)
+	}
+	// 3s-orbital.
+	{
+		const (
+			n = 3 // principal quantum number
 			l = 0 // azimuthal quantum number
 			m = 0 // magnetic quantum number
 		)
@@ -162,8 +171,6 @@ func RadialProb(r, psi float64) float64 {
 //
 // ref: https://chemistrygod.com/atomic-orbital#s-orbital
 func psi1SOrbital(rho, theta, phi float64) float64 {
-	// n = 1, l = 0, m = 0.
-
 	// a_0 is the Bohr radius, and rho is the radius.
 	return (1.0 / math.SqrtPi) * math.Pow(1.0/a0, 3.0/2.0) * math.Exp(-rho/a0)
 }
@@ -172,10 +179,16 @@ func psi1SOrbital(rho, theta, phi float64) float64 {
 //
 // ref: https://chemistrygod.com/atomic-orbital#s-orbital
 func psi2SOrbital(rho, theta, phi float64) float64 {
-	// n = 2, l = 0, m = 0.
-
 	// a_0 is the Bohr radius, and rho is the radius.
 	return (1.0 / (math.Sqrt(32) * math.SqrtPi)) * math.Pow(1.0/a0, 3.0/2.0) * (2.0 - rho/a0) * math.Exp(-rho/(2*a0))
+}
+
+// psi3SOrbital returns the psi function of the 2s-orbital (n=3, l=0, m=0).
+//
+// ref: https://chemistrygod.com/atomic-orbital#s-orbital
+func psi3SOrbital(rho, theta, phi float64) float64 {
+	// a_0 is the Bohr radius, and rho is the radius.
+	return (1.0 / (81 * math.Sqrt(3) * math.SqrtPi)) * math.Pow(1.0/a0, 3.0/2.0) * (27.0 - (18.0*rho)/a0 + (2*math.Pow(rho, 2))/math.Pow(a0, 2)) * math.Exp(-rho/(3*a0))
 }
 
 // Orbitals returns the psi function of the orbital with the specified principal
@@ -204,6 +217,12 @@ func Orbitals(n, l, m int) func(rho, theta, phi float64) float64 {
 		case 0:
 			// n = 2, l = 0, m = 0.
 			return psi2SOrbital
+		}
+	case 3:
+		switch l {
+		case 0:
+			// n = 3, l = 0, m = 0.
+			return psi3SOrbital
 		}
 	}
 	panic(fmt.Errorf("support for (n=%d, l=%d, m=%d)-orbital not yet implemented", n, l, m))
