@@ -97,8 +97,8 @@ func getValues(n, l, m int) plotter.XYs {
 	var xys plotter.XYs
 	const (
 		//rho = a0   // radial distance (radius)
-		theta = 0 // inclination (angular)
-		phi   = 0 // azimuth (angular)
+		theta = 15 // inclination (angular)
+		phi   = 30 // azimuth (angular)
 	)
 	for r := 0.0 * pm; r < 1300*pm; r += 1.0 * pm {
 		rho := r
@@ -223,7 +223,6 @@ func psi2POrbital(m int) func(rho, theta, phi float64) float64 {
 		sign := float64(m)
 		return func(rho, theta, phi float64) float64 {
 			return (1.0 / (math.Sqrt(64) * math.SqrtPi)) * math.Pow(1.0/a0, 3.0/2.0) * (rho / a0) * math.Exp(-rho/(2*a0)) * math.Sin(theta) * real(cmplx.Exp(complex(sign, 0)*1i*complex(phi, 0)))
-			//return (1.0 / (math.Sqrt(64) * math.SqrtPi)) * math.Pow(1.0/a0, 3.0/2.0) * (rho / a0) * math.Exp(-rho/(2*a0)) * math.Sin(theta) * math.Exp(sign*1i*phi)
 		}
 	}
 	panic("unreachable")
