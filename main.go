@@ -5,10 +5,12 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"math"
 	"math/cmplx"
+	"os"
 
 	"github.com/pkg/errors"
 	"gonum.org/v1/plot"
@@ -24,15 +26,43 @@ const pm = 0.000000000001 // 1.0 * 10^{-12} m
 const a0 = 52.9177210903 * pm // 52.9 pm
 
 func main() {
-	lines := genLines()
-	if err := genPlot("radial_probability.png", lines...); err != nil {
+	// Generate plot of radial probability for the 1s-, 2s-, 3s-, 2p-, 3p- and
+	// 3d-orbitals.
+	//lines := getLines()
+	//if err := genPlot("radial_probability.png", lines...); err != nil {
+	//	log.Fatalf("%+v", err)
+	//}
+
+	// Generate 3D-models visualizing the probability distribution of the 1s-, 2s-,
+	// 3s-, 2p-, 3p- and 3d-orbitals.
+	if err := genModels(); err != nil {
 		log.Fatalf("%+v", err)
 	}
 }
 
+// genModels generates 3D-models visualizing the probability distribution of the
+// 1s-, 2s-, 3s-, 2p-, 3p- and 3d-orbitals.
+func genModels() error {
+	// 1s-orbital.
+	{
+		const (
+			n = 1 // principal quantum number
+			l = 0 // azimuthal quantum number
+			m = 0 // magnetic quantum number
+		)
+		pts := genModel(n, l, m)
+		dstPath := fmt.Sprintf("orbital_n_%d_l_%d_m_%d.json", n, l, m)
+		fmt.Printf("creating %q\n", dstPath)
+		if err := writeJsonFile(dstPath, pts); err != nil {
+			return errors.WithStack(err)
+		}
+	}
+	return nil
+}
+
 // getLines returns plotter lines for the 1s-, 2s-, 3s-, 2p-, 3p- and
 // 3d-orbitals.
-func genLines() []Line {
+func getLines() []Line {
 	// 1s-orbital.
 	var lines []Line
 	{
@@ -356,4 +386,22 @@ func psi3DOrbital(m int) func(rho, theta, phi float64) float64 {
 		}
 	}
 	panic("unreachable")
+}
+
+// ### [ Helper functions ] ####################################################
+
+// writeJsonFile marshals pts into JSON format, writing to dstPath.
+func writeJsonFile(dstPath string, pts []Point) error {
+	f, err := os.Create(dstPath)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	defer f.Close()
+	enc := json.NewEncoder(f)
+	for _, pt := range pts {
+		if err := enc.Encode(pt); err != nil {
+			return errors.WithStack(err)
+		}
+	}
+	return nil
 }
