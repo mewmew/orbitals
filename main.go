@@ -24,6 +24,15 @@ const pm = 0.000000000001 // 1.0 * 10^{-12} m
 const a0 = 52.9177210903 * pm // 52.9 pm
 
 func main() {
+	lines := genLines()
+	if err := genPlot("radial_probability.png", lines...); err != nil {
+		log.Fatalf("%+v", err)
+	}
+}
+
+// getLines returns plotter lines for the 1s-, 2s-, 3s-, 2p-, 3p- and
+// 3d-orbitals.
+func genLines() []Line {
 	// 1s-orbital.
 	var lines []Line
 	{
@@ -91,9 +100,7 @@ func main() {
 			lines = append(lines, line)
 		}
 	}
-	if err := genPlot("radial_probability.png", lines...); err != nil {
-		log.Fatalf("%+v", err)
-	}
+	return lines
 }
 
 // getLine returns a plotter line of the specified (n, l, m)-orbital.
