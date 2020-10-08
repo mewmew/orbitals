@@ -79,6 +79,18 @@ func main() {
 			lines = append(lines, line)
 		}
 	}
+	// 3d-orbitals.
+	{
+		const (
+			n = 3 // principal quantum number
+			l = 2 // azimuthal quantum number
+			//m = 0 // magnetic quantum number
+		)
+		for m := -l; m <= l; m++ {
+			line := getLine(n, l, m)
+			lines = append(lines, line)
+		}
+	}
 	if err := genPlot("radial_probability.png", lines...); err != nil {
 		log.Fatalf("%+v", err)
 	}
@@ -159,7 +171,7 @@ func genPlot(dstPath string, elems ...Line) error {
 		return errors.WithStack(err)
 	}
 	p.Title.Text = "Radial probability"
-	p.X.Label.Text = "Radius (pm)"
+	p.X.Label.Text = "radius (pm)"
 	p.Y.Label.Text = "radial probability"
 
 	for i, elem := range elems {
@@ -192,75 +204,6 @@ func RadialProb(r, psi float64) float64 {
 	area := 4.0 * math.Pi * math.Pow(r, 2)
 	// radial probability = area * psi^2.
 	return area * math.Pow(psi, 2)
-}
-
-// psi1SOrbital returns the psi function of the 1s-orbital (n=1, l=0, m=0).
-//
-// ref: https://chemistrygod.com/atomic-orbital#s-orbital
-func psi1SOrbital(rho, theta, phi float64) float64 {
-	// a_0 is the Bohr radius, and rho is the radius.
-	return (1.0 / math.SqrtPi) * math.Pow(1.0/a0, 3.0/2.0) * math.Exp(-rho/a0)
-}
-
-// psi2SOrbital returns the psi function of the 2s-orbital (n=2, l=0, m=0).
-//
-// ref: https://chemistrygod.com/atomic-orbital#s-orbital
-func psi2SOrbital(rho, theta, phi float64) float64 {
-	// a_0 is the Bohr radius, and rho is the radius.
-	return (1.0 / (math.Sqrt(32) * math.SqrtPi)) * math.Pow(1.0/a0, 3.0/2.0) * (2.0 - rho/a0) * math.Exp(-rho/(2*a0))
-}
-
-// psi3SOrbital returns the psi function of the 2s-orbital (n=3, l=0, m=0).
-//
-// ref: https://chemistrygod.com/atomic-orbital#s-orbital
-func psi3SOrbital(rho, theta, phi float64) float64 {
-	// a_0 is the Bohr radius, and rho is the radius.
-	return (1.0 / (81 * math.Sqrt(3) * math.SqrtPi)) * math.Pow(1.0/a0, 3.0/2.0) * (27.0 - (18.0*rho)/a0 + (2*math.Pow(rho, 2))/math.Pow(a0, 2)) * math.Exp(-rho/(3*a0))
-}
-
-// psi2POrbital returns the psi function of the 2p-orbitals (n=2, l=1,
-// m={-1,0,1})
-//
-// ref: https://chemistrygod.com/atomic-orbital#p-orbital
-func psi2POrbital(m int) func(rho, theta, phi float64) float64 {
-	// a_0 is the Bohr radius, and rho is the radius.
-	switch m {
-	case 0:
-		// 2p-orbital (n=2, l=1, m=0)
-		return func(rho, theta, phi float64) float64 {
-			return (1.0 / (math.Sqrt(32) * math.SqrtPi)) * math.Pow(1.0/a0, 3.0/2.0) * (rho / a0) * math.Exp(-rho/(2*a0)) * math.Cos(theta)
-		}
-	case -1, +1:
-		// 2p-orbitals (n=2, l=1, m=+-1)
-		sign := float64(m)
-		return func(rho, theta, phi float64) float64 {
-			return (1.0 / (math.Sqrt(64) * math.SqrtPi)) * math.Pow(1.0/a0, 3.0/2.0) * (rho / a0) * math.Exp(-rho/(2*a0)) * math.Sin(theta) * real(cmplx.Exp(complex(sign, 0)*1i*complex(phi, 0)))
-		}
-	}
-	panic("unreachable")
-}
-
-// psi3POrbital returns the psi function of the 3p-orbitals (n=3, l=1,
-// m={-1,0,1})
-//
-// ref: https://chemistrygod.com/atomic-orbital#p-orbital
-func psi3POrbital(m int) func(rho, theta, phi float64) float64 {
-	// a_0 is the Bohr radius, and rho is the radius.
-	switch m {
-	case 0:
-		// 3p-orbital (n=3, l=1, m=0)
-		return func(rho, theta, phi float64) float64 {
-			return (1.0 / 81.0) * (math.Sqrt(2) / math.SqrtPi) * math.Pow(1.0/a0, 3.0/2.0) * (6*rho/a0 - math.Pow(rho, 2)/math.Pow(a0, 2)) * math.Exp(-rho/(3*a0)) * math.Cos(theta)
-		}
-	case -1, +1:
-		// 3p-orbitals (n=3, l=1, m=+-1)
-		sign := float64(m)
-		return func(rho, theta, phi float64) float64 {
-			// TODO: verify if `e^{-i phi}` should be `e^{+-i phi}`
-			return (1.0 / (81.0 * math.SqrtPi)) * math.Pow(1.0/a0, 3.0/2.0) * (6*rho/a0 - math.Pow(rho, 2)/math.Pow(a0, 2)) * math.Exp(-rho/(3*a0)) * math.Sin(theta) * real(cmplx.Exp(complex(sign, 0)*1i*complex(phi, 0)))
-		}
-	}
-	panic("unreachable")
 }
 
 // Orbitals returns the psi function of the orbital with the specified principal
@@ -302,8 +245,108 @@ func Orbitals(n, l, m int) func(rho, theta, phi float64) float64 {
 			// 3p-orbitals (n=3, l=1, m={-1,0,1})
 			return psi3POrbital(m)
 		case 2:
-			panic(fmt.Errorf("support for (n=%d, l=%d, m=%d)-orbital not yet implemented", n, l, m))
+			// 3d-orbitals (n=3, l=2, m={-2,-1,0,1,2})
+			return psi3DOrbital(m)
 		}
 	}
 	panic(fmt.Errorf("support for (n=%d, l=%d, m=%d)-orbital not yet implemented", n, l, m))
+}
+
+// === [ s-orbitals ] ==========================================================
+
+// psi1SOrbital returns the psi function of the 1s-orbital (n=1, l=0, m=0).
+//
+// ref: https://chemistrygod.com/atomic-orbital#s-orbital
+func psi1SOrbital(rho, theta, phi float64) float64 {
+	// a_0 is the Bohr radius, and rho is the radius.
+	return (1.0 / math.SqrtPi) * math.Pow(1.0/a0, 3.0/2.0) * math.Exp(-rho/a0)
+}
+
+// psi2SOrbital returns the psi function of the 2s-orbital (n=2, l=0, m=0).
+//
+// ref: https://chemistrygod.com/atomic-orbital#s-orbital
+func psi2SOrbital(rho, theta, phi float64) float64 {
+	// a_0 is the Bohr radius, and rho is the radius.
+	return (1.0 / (math.Sqrt(32) * math.SqrtPi)) * math.Pow(1.0/a0, 3.0/2.0) * (2.0 - rho/a0) * math.Exp(-rho/(2*a0))
+}
+
+// psi3SOrbital returns the psi function of the 2s-orbital (n=3, l=0, m=0).
+//
+// ref: https://chemistrygod.com/atomic-orbital#s-orbital
+func psi3SOrbital(rho, theta, phi float64) float64 {
+	// a_0 is the Bohr radius, and rho is the radius.
+	return (1.0 / (81 * math.Sqrt(3) * math.SqrtPi)) * math.Pow(1.0/a0, 3.0/2.0) * (27.0 - (18.0*rho)/a0 + (2*math.Pow(rho, 2))/math.Pow(a0, 2)) * math.Exp(-rho/(3*a0))
+}
+
+// === [ p-orbitals ] ==========================================================
+
+// psi2POrbital returns the psi function of the 2p-orbitals (n=2, l=1,
+// m={-1,0,1})
+//
+// ref: https://chemistrygod.com/atomic-orbital#p-orbital
+func psi2POrbital(m int) func(rho, theta, phi float64) float64 {
+	// a_0 is the Bohr radius, and rho is the radius.
+	switch m {
+	case 0:
+		// 2p-orbital (n=2, l=1, m=0)
+		return func(rho, theta, phi float64) float64 {
+			return (1.0 / (math.Sqrt(32) * math.SqrtPi)) * math.Pow(1.0/a0, 3.0/2.0) * (rho / a0) * math.Exp(-rho/(2*a0)) * math.Cos(theta)
+		}
+	case -1, +1:
+		// 2p-orbitals (n=2, l=1, m=+-1)
+		return func(rho, theta, phi float64) float64 {
+			return (1.0 / (math.Sqrt(64) * math.SqrtPi)) * math.Pow(1.0/a0, 3.0/2.0) * (rho / a0) * math.Exp(-rho/(2*a0)) * math.Sin(theta) * real(cmplx.Exp(complex(float64(m), 0)*1i*complex(phi, 0)))
+		}
+	}
+	panic("unreachable")
+}
+
+// psi3POrbital returns the psi function of the 3p-orbitals (n=3, l=1,
+// m={-1,0,1})
+//
+// ref: https://chemistrygod.com/atomic-orbital#p-orbital
+func psi3POrbital(m int) func(rho, theta, phi float64) float64 {
+	// a_0 is the Bohr radius, and rho is the radius.
+	switch m {
+	case 0:
+		// 3p-orbital (n=3, l=1, m=0)
+		return func(rho, theta, phi float64) float64 {
+			return (1.0 / 81.0) * (math.Sqrt(2) / math.SqrtPi) * math.Pow(1.0/a0, 3.0/2.0) * (6*rho/a0 - math.Pow(rho, 2)/math.Pow(a0, 2)) * math.Exp(-rho/(3*a0)) * math.Cos(theta)
+		}
+	case -1, +1:
+		// 3p-orbitals (n=3, l=1, m=+-1)
+		return func(rho, theta, phi float64) float64 {
+			// TODO: verify if `e^{-i phi}` should be `e^{+-i phi}`
+			return (1.0 / (81.0 * math.SqrtPi)) * math.Pow(1.0/a0, 3.0/2.0) * (6*rho/a0 - math.Pow(rho, 2)/math.Pow(a0, 2)) * math.Exp(-rho/(3*a0)) * math.Sin(theta) * real(cmplx.Exp(complex(float64(m), 0)*1i*complex(phi, 0)))
+		}
+	}
+	panic("unreachable")
+}
+
+// === [ d-orbitals ] ==========================================================
+
+// psi3DOrbital returns the psi function of the 3d-orbitals (n=3, l=2,
+// m={-2,-1,0,1,2})
+//
+// ref: https://chemistrygod.com/atomic-orbital#d-orbital
+func psi3DOrbital(m int) func(rho, theta, phi float64) float64 {
+	// a_0 is the Bohr radius, and rho is the radius.
+	switch m {
+	case 0:
+		// 3d-orbital (n=3, l=2, m=0)
+		return func(rho, theta, phi float64) float64 {
+			return (1.0 / (81.0 * math.Sqrt(6) * math.SqrtPi)) * math.Pow(1.0/a0, 3.0/2.0) * math.Pow(rho/a0, 2) * math.Exp(-rho/(3*a0)) * (3*math.Pow(math.Cos(theta), 2) - 1)
+		}
+	case -1, +1:
+		// 3d-orbitals (n=3, l=2, m=+-1)
+		return func(rho, theta, phi float64) float64 {
+			return (1.0 / (81.0 * math.SqrtPi)) * math.Pow(1.0/a0, 3.0/2.0) * math.Pow(rho/a0, 2) * math.Exp(-rho/(3*a0)) * math.Sin(theta) * math.Cos(theta) * real(cmplx.Exp(complex(float64(m), 0)*1i*complex(phi, 0)))
+		}
+	case -2, +2:
+		// 3d-orbitals (n=3, l=2, m=+-2)
+		return func(rho, theta, phi float64) float64 {
+			return (1.0 / (162.0 * math.SqrtPi)) * math.Pow(1.0/a0, 3.0/2.0) * math.Pow(rho/a0, 2) * math.Exp(-rho/(3*a0)) * math.Pow(math.Sin(theta), 2) * real(cmplx.Exp(complex(float64(m), 0)*1i*complex(phi, 0)))
+		}
+	}
+	panic("unreachable")
 }
