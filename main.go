@@ -43,6 +43,8 @@ func main() {
 // genModels generates 3D-models visualizing the probability distribution of the
 // 1s-, 2s-, 3s-, 2p-, 3p- and 3d-orbitals.
 func genModels() error {
+	// Probability threshold.
+	const threshold = 1.0e-11
 	// 1s-orbital.
 	{
 		const (
@@ -51,9 +53,10 @@ func genModels() error {
 			m = 0 // magnetic quantum number
 		)
 		pts := genModel(n, l, m)
+		ps := pruneModel(pts, threshold)
 		dstPath := fmt.Sprintf("orbital_n_%d_l_%d_m_%d.json", n, l, m)
 		fmt.Printf("creating %q\n", dstPath)
-		if err := writeJsonFile(dstPath, pts); err != nil {
+		if err := writeJsonFile(dstPath, ps); err != nil {
 			return errors.WithStack(err)
 		}
 	}
@@ -391,15 +394,15 @@ func psi3DOrbital(m int) func(rho, theta, phi float64) float64 {
 // ### [ Helper functions ] ####################################################
 
 // writeJsonFile marshals pts into JSON format, writing to dstPath.
-func writeJsonFile(dstPath string, pts []Point) error {
+func writeJsonFile(dstPath string, ps []CartesianPoint) error {
 	f, err := os.Create(dstPath)
 	if err != nil {
 		return errors.WithStack(err)
 	}
 	defer f.Close()
 	enc := json.NewEncoder(f)
-	for _, pt := range pts {
-		if err := enc.Encode(pt); err != nil {
+	for _, p := range ps {
+		if err := enc.Encode(p); err != nil {
 			return errors.WithStack(err)
 		}
 	}
