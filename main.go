@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"math/cmplx"
 
 	"github.com/pkg/errors"
 	"gonum.org/v1/plot"
@@ -53,6 +54,18 @@ func main() {
 		)
 		line := getLine(n, l, m)
 		lines = append(lines, line)
+	}
+	// 2p-orbitals.
+	{
+		const (
+			n = 2 // principal quantum number
+			l = 1 // azimuthal quantum number
+			//m = 0 // magnetic quantum number
+		)
+		for m := -1; m <= l; m++ {
+			line := getLine(n, l, m)
+			lines = append(lines, line)
+		}
 	}
 	if err := genPlot("radial_probability.png", lines...); err != nil {
 		log.Fatalf("%+v", err)
@@ -107,8 +120,10 @@ func getValues(n, l, m int) plotter.XYs {
 	for i := range xys {
 		total += xys[i].Y
 	}
-	for i := range xys {
-		xys[i].Y /= total
+	if total != 0 {
+		for i := range xys {
+			xys[i].Y /= total
+		}
 	}
 	// Use pm for X-axis.
 	for i := range xys {
@@ -191,6 +206,29 @@ func psi3SOrbital(rho, theta, phi float64) float64 {
 	return (1.0 / (81 * math.Sqrt(3) * math.SqrtPi)) * math.Pow(1.0/a0, 3.0/2.0) * (27.0 - (18.0*rho)/a0 + (2*math.Pow(rho, 2))/math.Pow(a0, 2)) * math.Exp(-rho/(3*a0))
 }
 
+// psi2POrbital returns the psi function of the 2p-orbital (n=2, l=1,
+// m={-1,0,1})
+//
+// ref: https://chemistrygod.com/atomic-orbital#p-orbital
+func psi2POrbital(m int) func(rho, theta, phi float64) float64 {
+	// a_0 is the Bohr radius, and rho is the radius.
+	switch m {
+	case 0:
+		// 2p-orbital (n=2, l=1, m=0)
+		return func(rho, theta, phi float64) float64 {
+			return (1.0 / (math.Sqrt(32) * math.SqrtPi)) * math.Pow(1.0/a0, 3.0/2.0) * (rho / a0) * math.Exp(-rho/(2*a0)) * math.Cos(theta)
+		}
+	case -1, +1:
+		// 2p-orbitals (n=2, l=1, m=+-1)
+		sign := float64(m)
+		return func(rho, theta, phi float64) float64 {
+			return (1.0 / (math.Sqrt(64) * math.SqrtPi)) * math.Pow(1.0/a0, 3.0/2.0) * (rho / a0) * math.Exp(-rho/(2*a0)) * math.Sin(theta) * real(cmplx.Exp(complex(sign, 0)*1i*complex(phi, 0)))
+			//return (1.0 / (math.Sqrt(64) * math.SqrtPi)) * math.Pow(1.0/a0, 3.0/2.0) * (rho / a0) * math.Exp(-rho/(2*a0)) * math.Sin(theta) * math.Exp(sign*1i*phi)
+		}
+	}
+	panic("unreachable")
+}
+
 // Orbitals returns the psi function of the orbital with the specified principal
 // quantum number, n, azimuthal quantum number, l, and magnetic quantum number,
 // m.
@@ -210,19 +248,26 @@ func Orbitals(n, l, m int) func(rho, theta, phi float64) float64 {
 	}
 	switch n {
 	case 1:
-		// n = 1, l = 0, m = 0.
+		// 1s-orbital (n=1, l=0, m=0)
 		return psi1SOrbital
 	case 2:
 		switch l {
 		case 0:
-			// n = 2, l = 0, m = 0.
+			// 2s-orbital (n=2, l=0, m=0)
 			return psi2SOrbital
+		case 1:
+			// 2p-orbitals (n=2, l=1, m={-1,0,1})
+			return psi2POrbital(m)
 		}
 	case 3:
 		switch l {
 		case 0:
-			// n = 3, l = 0, m = 0.
+			// 3s-orbital (n=3, l=0, m=0)
 			return psi3SOrbital
+		case 1:
+			panic(fmt.Errorf("support for (n=%d, l=%d, m=%d)-orbital not yet implemented", n, l, m))
+		case 2:
+			panic(fmt.Errorf("support for (n=%d, l=%d, m=%d)-orbital not yet implemented", n, l, m))
 		}
 	}
 	panic(fmt.Errorf("support for (n=%d, l=%d, m=%d)-orbital not yet implemented", n, l, m))
