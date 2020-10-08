@@ -19,10 +19,10 @@ func cartesianCoordFromSphericalCoord(rho, theta, phi float64) (x, y, z float64)
 	return x, y, z
 }
 
-// genModel generates a 3D-model visualizing the probability distribution of the
+// getModel returns a 3D-model visualizing the probability distribution of the
 // electron orbital with the specified principal quantum number, n, azimuthal
 // quantum number, l, and magnetic quantum number, m.
-func genModel(n, l, m int) []orb.SphericalPoint {
+func getModel(n, l, m int) []orb.SphericalPoint {
 	Psi := Orbitals(n, l, m)
 	var pts []orb.SphericalPoint
 	for theta := 0.0; theta <= 2*math.Pi; theta += 4.0 * degToRad {

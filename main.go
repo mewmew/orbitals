@@ -5,6 +5,7 @@
 package main
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -34,8 +35,8 @@ func main() {
 	//	log.Fatalf("%+v", err)
 	//}
 
-	// Generate 3D-models visualizing the probability distribution of the 1s-, 2s-,
-	// 3s-, 2p-, 3p- and 3d-orbitals.
+	// Generate 3D-models visualizing the probability distribution of the 1s-,
+	// 2s-, 3s-, 2p-, 3p- and 3d-orbitals.
 	if err := genModels(); err != nil {
 		log.Fatalf("%+v", err)
 	}
@@ -44,8 +45,6 @@ func main() {
 // genModels generates 3D-models visualizing the probability distribution of the
 // 1s-, 2s-, 3s-, 2p-, 3p- and 3d-orbitals.
 func genModels() error {
-	// Probability threshold.
-	const threshold = 1.0e-11
 	// 1s-orbital.
 	{
 		const (
@@ -53,20 +52,101 @@ func genModels() error {
 			l = 0 // azimuthal quantum number
 			m = 0 // magnetic quantum number
 		)
-		pts := genModel(n, l, m)
-		ps := pruneModel(pts, threshold)
-		dstPath := getModelName(n, l, m)
-		fmt.Printf("creating %q\n", dstPath)
-		if err := writeJsonFile(dstPath, ps); err != nil {
+		if err := genModel(n, l, m); err != nil {
 			return errors.WithStack(err)
+		}
+	}
+	// 2s-orbital.
+	{
+		const (
+			n = 2 // principal quantum number
+			l = 0 // azimuthal quantum number
+			m = 0 // magnetic quantum number
+		)
+		if err := genModel(n, l, m); err != nil {
+			return errors.WithStack(err)
+		}
+	}
+	// 3s-orbital.
+	{
+		const (
+			n = 3 // principal quantum number
+			l = 0 // azimuthal quantum number
+			m = 0 // magnetic quantum number
+		)
+		if err := genModel(n, l, m); err != nil {
+			return errors.WithStack(err)
+		}
+	}
+	// 2p-orbitals.
+	{
+		const (
+			n = 2 // principal quantum number
+			l = 1 // azimuthal quantum number
+			//m = 0 // magnetic quantum number
+		)
+		for m := -l; m <= l; m++ {
+			if err := genModel(n, l, m); err != nil {
+				return errors.WithStack(err)
+			}
+		}
+	}
+	// 3p-orbitals.
+	{
+		const (
+			n = 3 // principal quantum number
+			l = 1 // azimuthal quantum number
+			//m = 0 // magnetic quantum number
+		)
+		for m := -l; m <= l; m++ {
+			if err := genModel(n, l, m); err != nil {
+				return errors.WithStack(err)
+			}
+		}
+	}
+	// 3d-orbitals.
+	{
+		const (
+			n = 3 // principal quantum number
+			l = 2 // azimuthal quantum number
+			//m = 0 // magnetic quantum number
+		)
+		for m := -l; m <= l; m++ {
+			if err := genModel(n, l, m); err != nil {
+				return errors.WithStack(err)
+			}
 		}
 	}
 	return nil
 }
 
-// getModelName returns a JSON output file name for the specified (n, l,
+// Probability threshold.
+const threshold = 1.0e-6
+
+//const threshold = 1.0e-11
+
+// genModel generates a 3D-model visualizing the probability distribution of the
+// specified (n, l, m)-orbital.
+func genModel(n, l, m int) error {
+	pts := getModel(n, l, m)
+	ps := pruneModel(pts, threshold)
+	dstPath := getObjModelName(n, l, m)
+	fmt.Printf("creating %q\n", dstPath)
+	if err := writeObjFile(dstPath, ps); err != nil {
+		return errors.WithStack(err)
+	}
+	return nil
+}
+
+// getObjModelName returns a OBJ output file name for the specified (n, l,
 // m)-orbital.
-func getModelName(n, l, m int) string {
+func getObjModelName(n, l, m int) string {
+	return fmt.Sprintf("orbital_n_%d_l_%d_m_%d.obj", n, l, m)
+}
+
+// getJsonModelName returns a JSON output file name for the specified (n, l,
+// m)-orbital.
+func getJsonModelName(n, l, m int) string {
 	return fmt.Sprintf("orbital_n_%d_l_%d_m_%d.json", n, l, m)
 }
 
@@ -400,7 +480,7 @@ func psi3DOrbital(m int) func(rho, theta, phi float64) float64 {
 
 // ### [ Helper functions ] ####################################################
 
-// writeJsonFile marshals pts into JSON format, writing to dstPath.
+// writeJsonFile marshals ps into JSON format, writing to dstPath.
 func writeJsonFile(dstPath string, ps []orb.CartesianPoint) error {
 	f, err := os.Create(dstPath)
 	if err != nil {
@@ -410,6 +490,30 @@ func writeJsonFile(dstPath string, ps []orb.CartesianPoint) error {
 	enc := json.NewEncoder(f)
 	for _, p := range ps {
 		if err := enc.Encode(p); err != nil {
+			return errors.WithStack(err)
+		}
+	}
+	return nil
+}
+
+// writeObjFile stroes the points in OBJ format.
+//
+// Example file:
+//
+//    v 2.00000 0.00000 0.00000
+//    v 2.00000 1.00000 0.00000
+//    v 1.99037 0.00000 0.19603
+func writeObjFile(dstPath string, ps []orb.CartesianPoint) error {
+	f, err := os.Create(dstPath)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	defer f.Close()
+	bw := bufio.NewWriter(f)
+	defer bw.Flush()
+	for _, p := range ps {
+		// TODO: Also include probablility? Perhaps as colour or transparency?
+		if _, err := fmt.Fprintf(bw, "v %.1f %.1f %.1f\n", float64(p.X), float64(p.Y), float64(p.Z)); err != nil {
 			return errors.WithStack(err)
 		}
 	}
