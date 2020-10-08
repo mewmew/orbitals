@@ -3,6 +3,8 @@ package main
 import (
 	//"fmt"
 	"math"
+
+	"github.com/mewmew/orbitals/orb"
 )
 
 // convert radial to degree.
@@ -17,46 +19,12 @@ func cartesianCoordFromSphericalCoord(rho, theta, phi float64) (x, y, z float64)
 	return x, y, z
 }
 
-// SphericalCoord is a spherical (rho, theta, phi)-coordinate.
-type SphericalCoord struct {
-	// Radial distance (radius)
-	Rho float64
-	// Inclination (angular)
-	Theta float64
-	// Azimuth (angular)
-	Phi float64
-}
-
-// SphericalPoint is a spherical coordinate with a probability.
-type SphericalPoint struct {
-	// Spherical coordinate of electron.
-	//SphericalCoord
-
-	// Radial distance (radius)
-	Rho float64
-	// Inclination (angular)
-	Theta float64
-	// Azimuth (angular)
-	Phi float64
-
-	// Probability of electron occurence at the spherical coordinate.
-	Prob float64
-}
-
-// CartesianPoint is a Cartesian coordinate with a probability.
-type CartesianPoint struct {
-	// X-, Y-, Z-coordinate in picometer.
-	X, Y, Z int
-	// Probability of electron occurence at the Cartesian coordinate.
-	Prob float64
-}
-
 // genModel generates a 3D-model visualizing the probability distribution of the
 // electron orbital with the specified principal quantum number, n, azimuthal
 // quantum number, l, and magnetic quantum number, m.
-func genModel(n, l, m int) []SphericalPoint {
+func genModel(n, l, m int) []orb.SphericalPoint {
 	Psi := Orbitals(n, l, m)
-	var pts []SphericalPoint
+	var pts []orb.SphericalPoint
 	for theta := 0.0; theta <= 2*math.Pi; theta += 4.0 * degToRad {
 		//fmt.Println("theta:", theta/degToRad)
 		for phi := 0.0; phi <= 2*math.Pi; phi += 4.0 * degToRad {
@@ -68,7 +36,7 @@ func genModel(n, l, m int) []SphericalPoint {
 				//fmt.Printf("   psi^2:       %v\n", psi2)
 				//fmt.Printf("   radial prob: %v\n", radialProb)
 				//fmt.Println()
-				pt := SphericalPoint{
+				pt := orb.SphericalPoint{
 					//SphericalCoord: SphericalCoord{
 					Rho:   rho,
 					Theta: theta,
@@ -95,14 +63,14 @@ func genModel(n, l, m int) []SphericalPoint {
 
 // pruneModel prunes points below the given threshold probability and converts
 // the points from spherical coordinates to Cartesian coordinates.
-func pruneModel(pts []SphericalPoint, threshold float64) []CartesianPoint {
-	var ps []CartesianPoint
+func pruneModel(pts []orb.SphericalPoint, threshold float64) []orb.CartesianPoint {
+	var ps []orb.CartesianPoint
 	for _, pt := range pts {
 		if pt.Prob < threshold {
 			continue
 		}
 		x, y, z := cartesianCoordFromSphericalCoord(pt.Rho, pt.Theta, pt.Phi)
-		p := CartesianPoint{
+		p := orb.CartesianPoint{
 			X:    int(math.Round(x / pm)),
 			Y:    int(math.Round(y / pm)),
 			Z:    int(math.Round(z / pm)),

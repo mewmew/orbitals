@@ -12,6 +12,7 @@ import (
 	"math/cmplx"
 	"os"
 
+	"github.com/mewmew/orbitals/orb"
 	"github.com/pkg/errors"
 	"gonum.org/v1/plot"
 	"gonum.org/v1/plot/plotter"
@@ -54,13 +55,19 @@ func genModels() error {
 		)
 		pts := genModel(n, l, m)
 		ps := pruneModel(pts, threshold)
-		dstPath := fmt.Sprintf("orbital_n_%d_l_%d_m_%d.json", n, l, m)
+		dstPath := getModelName(n, l, m)
 		fmt.Printf("creating %q\n", dstPath)
 		if err := writeJsonFile(dstPath, ps); err != nil {
 			return errors.WithStack(err)
 		}
 	}
 	return nil
+}
+
+// getModelName returns a JSON output file name for the specified (n, l,
+// m)-orbital.
+func getModelName(n, l, m int) string {
+	return fmt.Sprintf("orbital_n_%d_l_%d_m_%d.json", n, l, m)
 }
 
 // getLines returns plotter lines for the 1s-, 2s-, 3s-, 2p-, 3p- and
@@ -394,7 +401,7 @@ func psi3DOrbital(m int) func(rho, theta, phi float64) float64 {
 // ### [ Helper functions ] ####################################################
 
 // writeJsonFile marshals pts into JSON format, writing to dstPath.
-func writeJsonFile(dstPath string, ps []CartesianPoint) error {
+func writeJsonFile(dstPath string, ps []orb.CartesianPoint) error {
 	f, err := os.Create(dstPath)
 	if err != nil {
 		return errors.WithStack(err)
