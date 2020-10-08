@@ -132,6 +132,7 @@ func genPlot(dstPath string, elems ...Line) error {
 			return errors.WithStack(err)
 		}
 		line.Color = plotutil.Color(i)
+		line.LineStyle.Width = vg.Points(2)
 		// Add values.
 		p.Add(line)
 		p.Legend.Add(elem.Legend, line)
