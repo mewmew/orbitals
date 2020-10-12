@@ -25,7 +25,7 @@ func cartesianCoordFromSphericalCoord(rho, theta, phi float64) (x, y, z float64)
 func getModel(n, l, m int) []orb.SphericalPoint {
 	Psi := Orbitals(n, l, m)
 	var pts []orb.SphericalPoint
-	for theta := 0.0; theta <= 2*math.Pi; theta += 4.0 * degToRad {
+	for theta := 0.0; theta <= math.Pi; theta += 4.0 * degToRad {
 		//fmt.Println("theta:", theta/degToRad)
 		for phi := 0.0; phi <= 2*math.Pi; phi += 4.0 * degToRad {
 			for rho := 0.0 * pm; rho < 1300*pm; rho += 1.0 * pm {
