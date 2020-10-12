@@ -1,7 +1,6 @@
 package main
 
 import (
-	//"fmt"
 	"math"
 
 	"github.com/mewmew/orbitals/orb"
@@ -19,10 +18,21 @@ func cartesianCoordFromSphericalCoord(rho, theta, phi float64) (x, y, z float64)
 	return x, y, z
 }
 
-// getModel returns a 3D-model visualizing the probability distribution of the
-// electron orbital with the specified principal quantum number, n, azimuthal
-// quantum number, l, and magnetic quantum number, m.
-func getModel(n, l, m int) []orb.SphericalPoint {
+// sphericalCoordCoordFromCartesian returns the spherical (rho, theta,
+// phi)-coordinate corresponding to the given Cartesian (x, y, z)-coordinate.
+//
+// ref: https://en.wikipedia.org/wiki/Spherical_coordinate_system#Cartesian_coordinates
+func sphericalCoordCoordFromCartesian(x, y, z float64) (rho, theta, phi float64) {
+	rho = math.Sqrt(math.Pow(x, 2) + math.Pow(y, 2) + math.Pow(z, 2))
+	theta = math.Atan(y / x)
+	phi = math.Atan(math.Sqrt(math.Pow(x, 2)+math.Pow(y, 2)) / z)
+	return rho, theta, phi
+}
+
+// getSphericModel returns a 3D-model visualizing the probability distribution
+// of the electron orbital with the specified principal quantum number, n,
+// azimuthal quantum number, l, and magnetic quantum number, m.
+func getSphericModel(n, l, m int) []orb.SphericalPoint {
 	Psi := Orbitals(n, l, m)
 	var pts []orb.SphericalPoint
 	for theta := 0.0; theta <= math.Pi; theta += 4.0 * degToRad {
@@ -61,9 +71,9 @@ func getModel(n, l, m int) []orb.SphericalPoint {
 	return pts
 }
 
-// pruneModel prunes points below the given threshold probability and converts
-// the points from spherical coordinates to Cartesian coordinates.
-func pruneModel(pts []orb.SphericalPoint, threshold float64) []orb.CartesianPoint {
+// pruneSphericModel prunes points below the given threshold probability and
+// converts the points from spherical coordinates to Cartesian coordinates.
+func pruneSphericModel(pts []orb.SphericalPoint, threshold float64) []orb.CartesianPoint {
 	var ps []orb.CartesianPoint
 	for _, pt := range pts {
 		if pt.Prob < threshold {
@@ -77,6 +87,59 @@ func pruneModel(pts []orb.SphericalPoint, threshold float64) []orb.CartesianPoin
 			Prob: pt.Prob,
 		}
 		ps = append(ps, p)
+	}
+	return ps
+}
+
+// getCartesianModel returns a 3D-model visualizing the probability distribution
+// of the electron orbital with the specified principal quantum number, n,
+// azimuthal quantum number, l, and magnetic quantum number, m.
+func getCartesianModel(n, l, m int) []orb.CartesianPoint {
+	Psi := Orbitals(n, l, m)
+	var pts []orb.CartesianPoint
+	const max = 1300 * pm
+	for x := -max; x <= max; x += 10.0 * pm {
+		for y := -max; y <= max; y += 10.0 * pm {
+			for z := -max; z <= max; z += 10.0 * pm {
+				rho, theta, phi := sphericalCoordCoordFromCartesian(x, y, z)
+				psi := Psi(rho, theta, phi)
+				//psi2 := math.Pow(psi, 2)
+				radialProb := RadialProb(rho, psi)
+				//fmt.Printf("rho=%.2g pm\n", rho/pm)
+				//fmt.Printf("   psi^2:       %v\n", psi2)
+				//fmt.Printf("   radial prob: %v\n", radialProb)
+				//fmt.Println()
+				pt := orb.CartesianPoint{
+					X:    int(math.Round(x / pm)),
+					Y:    int(math.Round(y / pm)),
+					Z:    int(math.Round(z / pm)),
+					Prob: radialProb,
+				}
+				pts = append(pts, pt)
+			}
+		}
+	}
+	// Normalize probability.
+	totalProb := 0.0
+	for i := range pts {
+		totalProb += pts[i].Prob
+	}
+	if totalProb != 0 {
+		for i := range pts {
+			pts[i].Prob /= totalProb
+		}
+	}
+	return pts
+}
+
+// pruneCartesianModel prunes points below the given threshold probability.
+func pruneCartesianModel(pts []orb.CartesianPoint, threshold float64) []orb.CartesianPoint {
+	var ps []orb.CartesianPoint
+	for _, pt := range pts {
+		if pt.Prob < threshold {
+			continue
+		}
+		ps = append(ps, pt)
 	}
 	return ps
 }

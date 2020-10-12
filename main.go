@@ -45,6 +45,8 @@ func main() {
 // genModels generates 3D-models visualizing the probability distribution of the
 // 1s-, 2s-, 3s-, 2p-, 3p- and 3d-orbitals.
 func genModels() error {
+	//genModel := genSphericModel
+	genModel := genCartesoamModel
 	// 1s-orbital.
 	{
 		const (
@@ -124,11 +126,24 @@ func genModels() error {
 //const threshold = 1.0e-6
 const threshold = 1.0e-11
 
-// genModel generates a 3D-model visualizing the probability distribution of the
-// specified (n, l, m)-orbital.
-func genModel(n, l, m int) error {
-	pts := getModel(n, l, m)
-	ps := pruneModel(pts, threshold)
+// genSphericModel generates a 3D-model visualizing the probability distribution
+// of the specified (n, l, m)-orbital.
+func genSphericModel(n, l, m int) error {
+	pts := getSphericModel(n, l, m)
+	ps := pruneSphericModel(pts, threshold)
+	dstPath := getObjModelName(n, l, m)
+	fmt.Printf("creating %q\n", dstPath)
+	if err := writeObjFile(dstPath, ps); err != nil {
+		return errors.WithStack(err)
+	}
+	return nil
+}
+
+// genCartesoamModel generates a 3D-model visualizing the probability
+// distribution of the specified (n, l, m)-orbital.
+func genCartesoamModel(n, l, m int) error {
+	pts := getCartesianModel(n, l, m)
+	ps := pruneCartesianModel(pts, threshold)
 	dstPath := getObjModelName(n, l, m)
 	fmt.Printf("creating %q\n", dstPath)
 	if err := writeObjFile(dstPath, ps); err != nil {
