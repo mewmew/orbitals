@@ -97,10 +97,13 @@ func pruneSphericModel(pts []orb.SphericalPoint, threshold float64) []orb.Cartes
 func getCartesianModel(n, l, m int) []orb.CartesianPoint {
 	Psi := Orbitals(n, l, m)
 	var pts []orb.CartesianPoint
-	const max = 1300 * pm
-	for x := -max; x <= max; x += 10.0 * pm {
-		for y := -max; y <= max; y += 10.0 * pm {
-			for z := -max; z <= max; z += 10.0 * pm {
+	const (
+		step = 15 * pm
+		max  = 3000 * pm
+	)
+	for x := -max; x <= max; x += step {
+		for y := -max; y <= max; y += step {
+			for z := -max; z <= max; z += step {
 				rho, theta, phi := sphericalCoordCoordFromCartesian(x, y, z)
 				psi := Psi(rho, theta, phi)
 				//psi2 := math.Pow(psi, 2)
@@ -110,9 +113,9 @@ func getCartesianModel(n, l, m int) []orb.CartesianPoint {
 				//fmt.Printf("   radial prob: %v\n", radialProb)
 				//fmt.Println()
 				pt := orb.CartesianPoint{
-					X:    int(math.Round(x / pm)),
-					Y:    int(math.Round(y / pm)),
-					Z:    int(math.Round(z / pm)),
+					X:    int(math.Round(x / step)),
+					Y:    int(math.Round(y / step)),
+					Z:    int(math.Round(z / step)),
 					Prob: radialProb,
 				}
 				pts = append(pts, pt)
