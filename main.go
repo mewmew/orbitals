@@ -46,7 +46,7 @@ func main() {
 // 1s-, 2s-, 3s-, 2p-, 3p- and 3d-orbitals.
 func genModels() error {
 	//genModel := genSphericModel
-	genModel := genCartesoamModel
+	genModel := genCartesianModel
 	// 1s-orbital.
 	{
 		const (
@@ -119,6 +119,29 @@ func genModels() error {
 			}
 		}
 	}
+	// Hybrid orbitals.
+	//
+	// sp
+	for i, Psi := range psiSPHybridOrbitals {
+		dstPath := fmt.Sprintf("hybrid_orbital_sp_%d.obj", i)
+		if err := genCartesianHybridModel(Psi, dstPath); err != nil {
+			return errors.WithStack(err)
+		}
+	}
+	// sp^2
+	for i, Psi := range psiSP2HybridOrbitals {
+		dstPath := fmt.Sprintf("hybrid_orbital_sp^2_%d.obj", i)
+		if err := genCartesianHybridModel(Psi, dstPath); err != nil {
+			return errors.WithStack(err)
+		}
+	}
+	// sp^3
+	for i, Psi := range psiSP3HybridOrbitals {
+		dstPath := fmt.Sprintf("hybrid_orbital_sp^3_%d.obj", i)
+		if err := genCartesianHybridModel(Psi, dstPath); err != nil {
+			return errors.WithStack(err)
+		}
+	}
 	return nil
 }
 
@@ -139,12 +162,24 @@ func genSphericModel(n, l, m int) error {
 	return nil
 }
 
-// genCartesoamModel generates a 3D-model visualizing the probability
+// genCartesianModel generates a 3D-model visualizing the probability
 // distribution of the specified (n, l, m)-orbital.
-func genCartesoamModel(n, l, m int) error {
+func genCartesianModel(n, l, m int) error {
 	pts := getCartesianModel(n, l, m)
 	ps := pruneCartesianModel(pts, threshold)
 	dstPath := getObjModelName(n, l, m)
+	fmt.Printf("creating %q\n", dstPath)
+	if err := writeObjFile(dstPath, ps); err != nil {
+		return errors.WithStack(err)
+	}
+	return nil
+}
+
+// genCartesianHybridModel generates a 3D-model visualizing the probability
+// distribution of the specified hybrid wave function psi.
+func genCartesianHybridModel(Psi func(rho, theta, phi float64) float64, dstPath string) error {
+	pts := getCartesianModelWithPsi(Psi)
+	ps := pruneCartesianModel(pts, threshold)
 	fmt.Printf("creating %q\n", dstPath)
 	if err := writeObjFile(dstPath, ps); err != nil {
 		return errors.WithStack(err)
@@ -424,6 +459,10 @@ func psi3SOrbital(rho, theta, phi float64) float64 {
 // psi2POrbital returns the psi function of the 2p-orbitals (n=2, l=1,
 // m={-1,0,1})
 //
+//    2p_z: k=0
+//    2p_x: k=+1
+//    2p_y: k=-1
+//
 // ref: https://chemistrygod.com/atomic-orbital#p-orbital
 func psi2POrbital(m int) func(rho, theta, phi float64) float64 {
 	// a_0 is the Bohr radius, and rho is the radius.
@@ -490,6 +529,99 @@ func psi3DOrbital(m int) func(rho, theta, phi float64) float64 {
 		}
 	}
 	panic("unreachable")
+}
+
+// === [ Hybrid wave functions ] ===============================================
+
+// --- [ sp hybrid wave function ] ---------------------------------------------
+
+// psiSPHybridOrbitals holds the psi functions of the sp hybrid orbitals.
+//
+// ref: https://winter.group.shef.ac.uk/orbitron/AO-hybrids/sp/equations.html
+var psiSPHybridOrbitals = []func(rho, theta, phi float64) float64{
+	// sp_1
+	func(rho, theta, phi float64) float64 {
+		const m_z = 0 // z: m=0
+		return (1.0 / math.Sqrt2) * (psi2SOrbital(rho, theta, phi) + psi2POrbital(m_z)(rho, theta, phi))
+	},
+	// sp_2
+	func(rho, theta, phi float64) float64 {
+		const m_z = 0 // z: m=0
+		return (1.0 / math.Sqrt2) * (psi2SOrbital(rho, theta, phi) - psi2POrbital(m_z)(rho, theta, phi))
+	},
+}
+
+// --- [ sp^2 hybrid wave function ] -------------------------------------------
+
+// psiSP2HybridOrbitals holds the psi functions of the sp^2 hybrid orbitals.
+//
+// ref: https://winter.group.shef.ac.uk/orbitron/AO-hybrids/sp2/equations.html
+var psiSP2HybridOrbitals = []func(rho, theta, phi float64) float64{
+	// sp^2_1
+	func(rho, theta, phi float64) float64 {
+		const m_z = 0 // z: m=0
+		return (1.0 / math.Sqrt(3)) * (psi2SOrbital(rho, theta, phi) + math.Sqrt2*psi2POrbital(m_z)(rho, theta, phi))
+	},
+	// sp^2_2
+	func(rho, theta, phi float64) float64 {
+		const (
+			m_x = +1 // x: m=+1
+			m_y = -1 // y: m=-1
+		)
+		return (1.0 / math.Sqrt(3)) * (psi2SOrbital(rho, theta, phi) - (1.0/math.Sqrt2)*psi2POrbital(m_x)(rho, theta, phi) + math.Sqrt(3.0/2.0)*psi2POrbital(m_y)(rho, theta, phi))
+	},
+	// sp^2_3
+	func(rho, theta, phi float64) float64 {
+		const (
+			m_x = +1 // x: m=+1
+			m_y = -1 // y: m=-1
+		)
+		return (1.0 / math.Sqrt(3)) * (psi2SOrbital(rho, theta, phi) - (1.0/math.Sqrt2)*psi2POrbital(m_x)(rho, theta, phi) - math.Sqrt(3.0/2.0)*psi2POrbital(m_y)(rho, theta, phi))
+	},
+}
+
+// --- [ sp^3 hybrid wave function ] -------------------------------------------
+
+// psiSP3HybridOrbitals holds the psi functions of the sp^3 hybrid orbitals.
+//
+// ref: https://winter.group.shef.ac.uk/orbitron/AO-hybrids/sp3/equations.html
+var psiSP3HybridOrbitals = []func(rho, theta, phi float64) float64{
+	// sp^3_1
+	func(rho, theta, phi float64) float64 {
+		const (
+			m_z = 0  // z: m=0
+			m_x = +1 // x: m=+1
+			m_y = -1 // y: m=-1
+		)
+		return (1.0 / 2.0) * (psi2SOrbital(rho, theta, phi) + psi2POrbital(m_x)(rho, theta, phi) + psi2POrbital(m_y)(rho, theta, phi) + psi2POrbital(m_z)(rho, theta, phi))
+	},
+	// sp^3_2
+	func(rho, theta, phi float64) float64 {
+		const (
+			m_z = 0  // z: m=0
+			m_x = +1 // x: m=+1
+			m_y = -1 // y: m=-1
+		)
+		return (1.0 / 2.0) * (psi2SOrbital(rho, theta, phi) + psi2POrbital(m_x)(rho, theta, phi) - psi2POrbital(m_y)(rho, theta, phi) - psi2POrbital(m_z)(rho, theta, phi))
+	},
+	// sp^3_3
+	func(rho, theta, phi float64) float64 {
+		const (
+			m_z = 0  // z: m=0
+			m_x = +1 // x: m=+1
+			m_y = -1 // y: m=-1
+		)
+		return (1.0 / 2.0) * (psi2SOrbital(rho, theta, phi) - psi2POrbital(m_x)(rho, theta, phi) + psi2POrbital(m_y)(rho, theta, phi) - psi2POrbital(m_z)(rho, theta, phi))
+	},
+	// sp^3_4
+	func(rho, theta, phi float64) float64 {
+		const (
+			m_z = 0  // z: m=0
+			m_x = +1 // x: m=+1
+			m_y = -1 // y: m=-1
+		)
+		return (1.0 / 2.0) * (psi2SOrbital(rho, theta, phi) - psi2POrbital(m_x)(rho, theta, phi) - psi2POrbital(m_y)(rho, theta, phi) + psi2POrbital(m_z)(rho, theta, phi))
+	},
 }
 
 // ### [ Helper functions ] ####################################################

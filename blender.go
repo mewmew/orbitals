@@ -34,6 +34,12 @@ func sphericalCoordCoordFromCartesian(x, y, z float64) (rho, theta, phi float64)
 // azimuthal quantum number, l, and magnetic quantum number, m.
 func getSphericModel(n, l, m int) []orb.SphericalPoint {
 	Psi := Orbitals(n, l, m)
+	return getSphericModelWithPsi(Psi)
+}
+
+// getSphericModel returns a 3D-model visualizing the probability distribution
+// of the electron orbital with the specified wave function, psi.
+func getSphericModelWithPsi(Psi func(rho, theta, phi float64) float64) []orb.SphericalPoint {
 	var pts []orb.SphericalPoint
 	for theta := 0.0; theta <= math.Pi; theta += 4.0 * degToRad {
 		//fmt.Println("theta:", theta/degToRad)
@@ -96,6 +102,12 @@ func pruneSphericModel(pts []orb.SphericalPoint, threshold float64) []orb.Cartes
 // azimuthal quantum number, l, and magnetic quantum number, m.
 func getCartesianModel(n, l, m int) []orb.CartesianPoint {
 	Psi := Orbitals(n, l, m)
+	return getCartesianModelWithPsi(Psi)
+}
+
+// getCartesianModelWithPsi returns a 3D-model visualizing the probability
+// distribution of the electron orbital with the specified wave function, psi.
+func getCartesianModelWithPsi(Psi func(rho, theta, phi float64) float64) []orb.CartesianPoint {
 	var pts []orb.CartesianPoint
 	const (
 		step = 15 * pm
